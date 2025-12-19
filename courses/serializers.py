@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from courses.models import Category, Course, Lesson
+from courses.models import Category, Course, Lesson, Assignment
+from django.utils import timezone
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -9,9 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    instructor = serializers.StringRelatedField(
-        read_only=True
-    )
+    instructor = serializers.StringRelatedField(read_only=True)
     lessons_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -32,9 +31,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 
 class LessonSerializer(serializers.ModelSerializer):
-    course = serializers.PrimaryKeyRelatedField(
-        queryset=Course.objects.all()
-    )
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
 
     class Meta:
         model = Lesson
@@ -42,12 +39,47 @@ class LessonSerializer(serializers.ModelSerializer):
 
     def validate_video(self, value):
         if value:
-            if not value.name.endswith(('.mp4', '.avi', '.mov')):
+            if not value.name.endswith((".mp4", ".avi", ".mov")):
                 raise serializers.ValidationError("Unsupported video format.")
         return value
 
     def validate_material(self, value):
         if value:
-            if not value.name.endswith(('.pdf', '.docx', '.pptx')):
+            if not value.name.endswith((".pdf", ".docx", ".pptx")):
                 raise serializers.ValidationError("Unsupported material format.")
+        return value
+
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    instructor = serializers.StringRelatedField(read_only=True)
+    course_title = serializers.CharField(source="course.title", read_only=True)
+
+    class Meta:
+        model = Assignment
+        fields = [
+            "id",
+            "course",
+            "course_title",
+            "title",
+            "description",
+            "attachment",
+            "due_date",
+            "instructor",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["instructor", "created_at", "updated_at"]
+
+    def validate_due_date(self, value):
+        """
+        Ensure the due date is in the future.
+        """
+        if value <= timezone.now():
+            raise serializers.ValidationError("Due date must be in the future.")
+        return value
+
+    def validate_attachment(self, value):
+        if value:
+            if not value.name.endswith((".pdf", ".docx", ".pptx")):
+                raise serializers.ValidationError("Unsupported attachment format.")
         return value
