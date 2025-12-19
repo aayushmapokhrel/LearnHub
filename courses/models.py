@@ -37,3 +37,21 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
+
+
+class Assignment(models.Model):
+    course = models.ForeignKey(
+        "Course", on_delete=models.CASCADE, related_name="assignments"
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    attachment = models.FileField(upload_to="assignments/", blank=True, null=True)
+    due_date = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    instructor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="assignments"
+    )
+
+    def __str__(self):
+        return f"{self.course.title} - {self.title}"

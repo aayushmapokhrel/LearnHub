@@ -1,10 +1,11 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from courses.models import Category, Course, Lesson
+from courses.models import Category, Course, Lesson, Assignment
 from courses.serializers import (
     CategorySerializer,
     CourseSerializer,
-    LessonSerializer
+    LessonSerializer,
+    AssignmentSerializer,
 )
 from utils.permissions import IsInstructor, IsAdmin
 from rest_framework.exceptions import PermissionDenied
@@ -47,3 +48,23 @@ class LessonViewSet(ModelViewSet):
         if course.instructor != self.request.user:
             raise PermissionDenied("You can only add lessons to your own courses")
         serializer.save()
+
+
+class AssignmentViewSet(ModelViewSet):
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsInstructor()]
+
+    def perform_create(self, serializer):
+        course = serializer.validated_data.get("course")
+
+        if course.instructor != self.request.user:
+            raise PermissionDenied(
+                "You can only create assignments for your own courses."
+            )
+
+        serializer.save(instructor=self.request.user)
