@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from courses.models import Category, Course, Lesson, Assignment, AssignmentSubmission, LessonProgress
 from django.utils import timezone
-from courses.serivies import calculate_course_progress
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -128,6 +127,3 @@ class LessonProgressSerializer(serializers.ModelSerializer):
             instance.completed_at = timezone.now()
         return super().update(instance, validated_data)
     
-    def get_progress(self, obj):
-        user = self.context['request'].user
-        return calculate_course_progress(user, obj)
