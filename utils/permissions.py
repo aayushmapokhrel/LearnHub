@@ -28,3 +28,18 @@ class IsInstructorOrOwner(BasePermission):
         elif request.user.role == "student":
             return obj.student == request.user
         return False
+
+
+from rest_framework.permissions import BasePermission
+
+
+class IsStudentOwner(BasePermission):
+    """
+    Student can access only their own progress.
+    Instructor/Admin can read.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role in ["admin", "instructor"]:
+            return True
+        return obj.student == request.user

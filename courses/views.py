@@ -1,14 +1,15 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from courses.models import Category, Course, Lesson, Assignment, AssignmentSubmission
+from courses.models import Category, Course, Lesson, Assignment, AssignmentSubmission, LessonProgress
 from courses.serializers import (
     CategorySerializer,
     CourseSerializer,
     LessonSerializer,
     AssignmentSerializer,
-    AssignmentSubmissionSerializer
+    AssignmentSubmissionSerializer,
+    LessonProgressSerializer,
 )
-from utils.permissions import IsInstructor, IsAdmin, IsInstructorOrOwner
+from utils.permissions import IsInstructor, IsAdmin, IsInstructorOrOwner, IsStudentOwner
 from rest_framework.exceptions import PermissionDenied
 
 
@@ -92,3 +93,26 @@ class AssignmentSubmissionViewSet(ModelViewSet):
 
         serializer.save(student=self.request.user)
 
+
+class LessonProgressViewSet(ModelViewSet):
+    serializer_class = LessonProgressSerializer
+    permission_classes = [IsAuthenticated, IsStudentOwner]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.role == 'student':
+            return LessonProgress.objects.filter(student=user)
+
+        if user.role == 'instructor':
+            return LessonProgress.objects.filter(
+                lesson__course__instructor=user
+            )
+
+        return LessonProgress.objects.all()
+
+    def perform_create(self, serializer):
+        if self.request.user.role != 'student':
+            raise PermissionDenied("Only students can track progress.")
+
+        serializer.save(student=self.request.user)
